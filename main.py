@@ -13,7 +13,7 @@ operation = st.sidebar.selectbox(
     (
         "덧셈 (+)", "뺄셈 (-)", "곱셈 (*)", "나눗셈 (/)", 
         "나머지 연산 (%)", "지수 연산 (^)", "로그 연산 (log)",
-        "**다항함수 연산 (P(x))**" # 새 기능 추가
+        "**다항함수 연산 (P(x))**"
     )
 )
 
@@ -66,7 +66,6 @@ if st.button("계산하기", type="primary"):
             result = num1 - num2
             equation = f"{num1} - {num2}"
 
-        # ... (이하 사칙연산, 지수, 로그 연산 코드는 이전과 동일)
         elif operation == "곱셈 (*)":
             result = num1 * num2
             equation = f"{num1} \times {num2}"
@@ -74,6 +73,7 @@ if st.button("계산하기", type="primary"):
         elif operation == "나눗셈 (/)":
             if num2 == 0:
                 st.error("0으로 나눌 수 없습니다.")
+                st.stop() # 👈 오류 수정: return 대신 st.stop()
             else:
                 result = num1 / num2
                 equation = f"{num1} \div {num2}"
@@ -81,6 +81,7 @@ if st.button("계산하기", type="primary"):
         elif operation == "나머지 연산 (%)":
             if num2 == 0:
                 st.error("0으로 나눌 수 없습니다.")
+                st.stop() # 👈 오류 수정: return 대신 st.stop()
             else:
                 result = num1 % num2
                 equation = f"{num1} \pmod{{{num2}}}"
@@ -92,36 +93,34 @@ if st.button("계산하기", type="primary"):
         elif operation == "로그 연산 (log)":
             if num1 <= 0:
                 st.error("진수는 0보다 커야 합니다.")
+                st.stop() # 👈 오류 수정: return 대신 st.stop()
             elif num2 <= 0 or num2 == 1:
                 st.error("밑은 0보다 크고 1이 아니어야 합니다.")
+                st.stop() # 👈 오류 수정: return 대신 st.stop()
             else:
                 result = math.log(num1, num2)
                 equation = f"\log_{{{num2}}} ({num1})"
         
-        # 🌟 새로 추가된 다항함수 연산 로직
+        # 다항함수 연산 로직
         elif "**다항함수 연산 (P(x))**" in operation:
             
             # 1) 계수 파싱 및 정리
             try:
-                # 쉼표로 분리 후 공백 제거, float 변환
                 coeffs = [float(c.strip()) for c in coeffs_input.split(',') if c.strip()]
             except ValueError:
                 st.error("계수 입력 형식이 올바르지 않습니다. 숫자를 쉼표로 구분했는지 확인해주세요.")
-                return
+                st.stop() # 👈 오류 수정: return 대신 st.stop()
 
             if not coeffs:
                 st.warning("계수를 입력해주세요.")
-                return
+                st.stop() # 👈 오류 수정: return 대신 st.stop()
             
-            # 2) 다항식 평가 (Horner's Method 사용)
-            # P(x) = c_n x^n + c_{n-1} x^{n-1} + ... + c_0
+            # 2) 다항식 평가 (Horner's Method)
             result = 0
             for coeff in coeffs:
                 result = result * x_value + coeff
             
             # 3) 수식 구성 (LaTeX)
-            
-            # P(x) 표현을 위한 템플릿: 3x^2 + (-2)x^1 + 1x^0
             poly_parts = []
             degree = len(coeffs) - 1
             
@@ -131,32 +130,23 @@ if st.button("계산하기", type="primary"):
                 if coeff == 0:
                     continue
                 
-                # 최고차항 또는 양수일 경우 + 부호 생략
                 sign = "" if i == 0 or coeff < 0 else "+" 
-                
-                # 절대값 사용
                 abs_coeff = abs(coeff)
                 
                 if current_degree == 0:
-                    # 상수항 (x^0)
                     part = f"{sign} {abs_coeff}"
                 elif current_degree == 1:
-                    # 1차항 (x^1)
-                    # 계수가 1인 경우 1 생략
                     coeff_str = "" if abs_coeff == 1 else abs_coeff
                     part = f"{sign} {coeff_str}x"
                 else:
-                    # 2차 이상 항
                     coeff_str = "" if abs_coeff == 1 else abs_coeff
                     part = f"{sign} {coeff_str}x^{{{current_degree}}}"
                 
                 poly_parts.append(part.strip())
 
-            # 최종 수식
             poly_str = "".join(poly_parts).strip().replace('+ -', '- ')
             if not poly_str: poly_str = "0"
             
-            # 첫 문자가 + 또는 - 이면 불필요한 공백 제거
             if poly_str.startswith('+ '):
                 poly_str = poly_str[2:]
             
@@ -167,12 +157,3 @@ if st.button("계산하기", type="primary"):
         if result is not None:
             st.success("계산 성공!")
             # 수식은 LaTeX 형식으로 깔끔하게 표시
-            st.latex(f"{equation} \approx {result:.4f}")
-            
-    except Exception as e:
-        # 기타 예상치 못한 오류 처리
-        st.error(f"처리 중 예상치 못한 오류가 발생했습니다: {e}")
-
-# 바닥글
-st.write("---")
-st.caption("Created with Python & Streamlit")
